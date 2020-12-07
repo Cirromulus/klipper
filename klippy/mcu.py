@@ -178,6 +178,7 @@ class MCU_pwm:
         self._mcu = mcu
         self._hardware_pwm = False
         self._cycle_time = 0.100
+        self._min_clock_diff = 0
         self._max_duration = 2.
         self._oid = None
         self._mcu.register_config_callback(self._build_config)
@@ -217,6 +218,7 @@ class MCU_pwm:
         printtime = self._mcu.estimated_print_time(curtime)
         self._last_clock = self._mcu.print_time_to_clock(printtime + 0.200)
         cycle_ticks = self._mcu.seconds_to_clock(self._cycle_time)
+        self._min_clock_diff = cycle_ticks
         if self._hardware_pwm:
             self._th = self._mcu.get_printer().lookup_object('toolhead')
             self._pwm_max = self._mcu.get_constant_float("PWM_MAX")
@@ -268,7 +270,10 @@ class MCU_pwm:
         self._set_cycle_ticks = self._mcu.lookup_command(
             "set_soft_pwm_cycle_ticks oid=%c cycle_ticks=%u", cq=cmd_queue)
     def set_pwm(self, print_time, value, cycle_time=None):
-        clock = self._mcu.print_time_to_clock(print_time)
+        req_clock = self._mcu.print_time_to_clock(print_time)
+        # FIXME: let sync_channel replace uncommitted values
+        #        so that this is not necessary
+        clock = max(req_clock, self._last_clock+self._min_clock_diff)
         minclock = self._last_clock
         self._last_clock = clock
         if self._invert:

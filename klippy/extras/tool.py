@@ -2,16 +2,14 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-#FIXME: let sync_channel replace uncommitted values
-#       so that this is not necessary
-PWM_MIN_TIME = 0.001
-
-
 class PWM_tool:
     def __init__(self, config, default_shutdown_value=0.):
         self.printer = config.get_printer()
         self.last_value = 0.
         self.last_time = 0.
+        self.safety_timeout = 1.
+        self.reactor = self.printer.get_reactor()
+        self.resend_timer = self.reactor.register_timer(self._resend_current_val)
         # Read config
         self.max_value = config.getfloat('max_power', 1., above=0., maxval=1.)
         #self.ramp_up_time = config.getfloat('ramp_up_time', 0,
@@ -25,25 +23,29 @@ class PWM_tool:
         # Setup pwm object
         ppins = self.printer.lookup_object('pins')
         self.mcu_pwm = ppins.setup_pin('pwm', config.get('pin'))
-        self.mcu_pwm.setup_max_duration(0.)
+        self.mcu_pwm.setup_max_duration(self.safety_timeout)
         self.mcu_pwm.setup_cycle_time(cycle_time, hardware_pwm)
-        shutdown_value = max(0., min(self.max_value, shutdown_value))
+        self.shutdown_value = max(0., min(self.max_value, shutdown_value))
         self.mcu_pwm.setup_start_value(0., shutdown_value)
         # Register callbacks
         self.printer.register_event_handler("gcode:request_restart",
                                             self._handle_request_restart)
     def get_mcu(self):
         return self.mcu_fan.get_mcu()
-    def set_value(self, print_time, value):
+    def set_value(self, print_time, value, resend=False):
+        #todo: disable timer?
         if value < self.off_below:
             value = 0.
         value = max(0., min(self.max_value, value * self.max_value))
-        if value == self.last_value:
+        if not resend and value == self.last_value:
             return
-        print_time = max(self.last_time+PWM_MIN_TIME, print_time)
-        self.mcu_pwm.set_pwm(print_time, value)
+        print_time = max(self.last_time, print_time)
         self.last_time = print_time
         self.last_value = value
+        self.mcu_pwm.set_pwm(print_time, value)
+        if value != self.shutdown_value:
+            self.reactor.update_timer(self.resend_timer,
+                                      self.reactor.NOW + 0.75 * self.safety_timeout)
     def set_value_from_command(self, value):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt:
@@ -52,6 +54,10 @@ class PWM_tool:
         self.set_value(print_time, 0.)
     def get_status(self, eventtime):
         return {'speed': self.last_fan_value}
+    def _resend_current_val(self, eventtime):
+        # set_value restarts timer again
+        self.set_value(eventtime, self.last_value, resend=True)
+        self.reactor.NEVER  # FIXME: Will this end the newly updated timer?
 
 class PrinterSpindle:
     def __init__(self, config):
@@ -69,7 +75,7 @@ class PrinterSpindle:
         self.tool.set_value_from_command(value)
     def cmd_M5(self, gcmd):
         # Turn spindle off
-        self.tool.set_svalue_from_command(0.)
+        self.tool.set_value_from_command(0.)
 
 def load_config(config):
     return PrinterSpindle(config)

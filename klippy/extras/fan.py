@@ -4,8 +4,6 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-FAN_MIN_TIME = 0.100
-
 class Fan:
     def __init__(self, config, default_shutdown_speed=0.):
         self.printer = config.get_printer()
@@ -39,7 +37,7 @@ class Fan:
         value = max(0., min(self.max_power, value * self.max_power))
         if value == self.last_fan_value:
             return
-        print_time = max(self.last_fan_time + FAN_MIN_TIME, print_time)
+        print_time = max(self.last_fan_time, print_time)
         if (value and value < self.max_power and self.kick_start_time
             and (not self.last_fan_value or value - self.last_fan_value > .5)):
             # Run fan at full speed for specified kick_start_time
