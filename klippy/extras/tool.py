@@ -7,14 +7,13 @@ class PWM_tool:
         self.printer = config.get_printer()
         self.last_value = 0.
         self.last_time = 0.
-        self.safety_timeout = 1.
+        self.safety_timeout = config.getfloat('safety_timeout', 2,
+                                                minval=0.)
         self.reactor = self.printer.get_reactor()
         self.resend_timer = self.reactor.register_timer(
             self._resend_current_val)
         # Read config
         self.max_value = config.getfloat('max_power', 1., above=0., maxval=1.)
-        #self.ramp_up_time = config.getfloat('ramp_up_time', 0,
-        #                                       minval=0.)
         self.off_below = config.getfloat('off_below', default=0.,
                                          minval=0., maxval=1.)
         cycle_time = config.getfloat('cycle_time', 0.01, above=0.)
@@ -34,20 +33,20 @@ class PWM_tool:
     def get_mcu(self):
         return self.mcu_fan.get_mcu()
     def set_value(self, print_time, value, resend=False):
-        #todo: disable timer?
         if value < self.off_below:
             value = 0.
         value = max(0., min(self.max_value, value * self.max_value))
-        if not resend and value == self.last_value:
+        if value == self.last_value and not resend:
             return
         print_time = max(self.last_time, print_time)
         self.last_time = print_time
         self.last_value = value
         self.mcu_pwm.set_pwm(print_time, value)
-        if value != self.shutdown_value:
-            self.reactor.update_timer(
-                self.resend_timer,
-                self.reactor.NOW + 0.75 * self.safety_timeout)
+        if self.safety_timeout != 0 and not resend:
+            if value != self.shutdown_value:
+                self.reactor.update_timer(
+                    self.resend_timer,
+                    self.reactor.monotonic() + 0.8 * self.safety_timeout)
     def set_value_from_command(self, value):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt:
@@ -55,11 +54,14 @@ class PWM_tool:
     def _handle_request_restart(self, print_time):
         self.set_value(print_time, 0.)
     def get_status(self, eventtime):
-        return {'speed': self.last_fan_value}
+        return {'value': self.last_value}
     def _resend_current_val(self, eventtime):
-        # set_value restarts timer again
-        self.set_value(eventtime, self.last_value, resend=True)
-        self.reactor.NEVER  # FIXME: Will this end the newly updated timer?
+        print_time = self.mcu_pwm.get_mcu().estimated_print_time(eventtime)
+        # FIXME: will "+.1" interfere with next laser value?
+        self.set_value(print_time+.1, self.last_value, resend=True)
+        if self.last_value != self.shutdown_value:
+            return eventtime + 0.8 * self.safety_timeout
+        return self.reactor.NEVER
 
 class PrinterSpindle:
     def __init__(self, config):
