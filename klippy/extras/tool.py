@@ -9,7 +9,8 @@ class PWM_tool:
         self.last_time = 0.
         self.safety_timeout = 1.
         self.reactor = self.printer.get_reactor()
-        self.resend_timer = self.reactor.register_timer(self._resend_current_val)
+        self.resend_timer = self.reactor.register_timer(
+            self._resend_current_val)
         # Read config
         self.max_value = config.getfloat('max_power', 1., above=0., maxval=1.)
         #self.ramp_up_time = config.getfloat('ramp_up_time', 0,
@@ -44,8 +45,9 @@ class PWM_tool:
         self.last_value = value
         self.mcu_pwm.set_pwm(print_time, value)
         if value != self.shutdown_value:
-            self.reactor.update_timer(self.resend_timer,
-                                      self.reactor.NOW + 0.75 * self.safety_timeout)
+            self.reactor.update_timer(
+                self.resend_timer,
+                self.reactor.NOW + 0.75 * self.safety_timeout)
     def set_value_from_command(self, value):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt:

@@ -219,8 +219,8 @@ class MCU_pwm:
         self._last_clock = self._mcu.print_time_to_clock(printtime + 0.200)
         cycle_ticks = self._mcu.seconds_to_clock(self._cycle_time)
         self._min_clock_diff = cycle_ticks
+        self._th = self._mcu.get_printer().lookup_object('toolhead')
         if self._hardware_pwm:
-            self._th = self._mcu.get_printer().lookup_object('toolhead')
             self._pwm_max = self._mcu.get_constant_float("PWM_MAX")
             if self._is_static:
                 self._mcu.add_config_cmd(
@@ -249,7 +249,6 @@ class MCU_pwm:
             self._mcu.add_config_cmd("set_digital_out pin=%s value=%d"
                                      % (self._pin, self._start_value >= 0.5))
             return
-        self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
         self._mcu.add_config_cmd(
             "config_soft_pwm_out oid=%d pin=%s value=%d"
@@ -265,8 +264,8 @@ class MCU_pwm:
         self._mcu.add_config_cmd(
             "queue_soft_pwm_out oid=%d clock=%d on_ticks=%d"
             % (self._oid, self._last_clock, svalue), is_init=True)
-        self._set_cmd = self._mcu.lookup_command(
-            "queue_soft_pwm_out oid=%c clock=%u on_ticks=%u", cq=cmd_queue)
+        self._set_cmd = self._mcu.lookup_command_id(
+            "queue_soft_pwm_out oid=%c clock=%u on_ticks=%u")
         self._set_cycle_ticks = self._mcu.lookup_command(
             "set_soft_pwm_cycle_ticks oid=%c cycle_ticks=%u", cq=cmd_queue)
     def set_pwm(self, print_time, value, cycle_time=None):
@@ -294,8 +293,13 @@ class MCU_pwm:
                                        minclock=minclock, reqclock=clock)
             self._last_cycle_ticks = cycle_ticks
         on_ticks = int(max(0., min(1., value)) * float(cycle_ticks) + 0.5)
-        self._set_cmd.send([self._oid, clock, on_ticks],
-                           minclock=minclock, reqclock=clock)
+
+        data = (self._set_cmd, self._oid, clock & 0xFFFFFFFF, on_ticks)
+        self._ffi_lib.sync_channel_queue_msg(
+            self._sync_channel, data, len(data), clock)
+        self._th.note_synchronous_command(print_time)
+        #self._set_cmd.send([self._oid, clock, on_ticks],
+        #                  minclock=minclock, reqclock=clock)
 
 class MCU_adc:
     def __init__(self, mcu, pin_params):
