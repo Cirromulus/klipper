@@ -7,7 +7,7 @@ class PWM_tool:
         self.printer = config.get_printer()
         self.last_value = 0.
         self.last_time = 0.
-        self.safety_timeout = config.getfloat('safety_timeout', 2,
+        self.safety_timeout = config.getfloat('safety_timeout', 5,
                                                 minval=0.)
         self.reactor = self.printer.get_reactor()
         self.resend_timer = self.reactor.register_timer(
@@ -46,7 +46,7 @@ class PWM_tool:
             if value != self.shutdown_value:
                 self.reactor.update_timer(
                     self.resend_timer,
-                    self.reactor.monotonic() + 0.8 * self.safety_timeout)
+                    self.reactor.monotonic() + 0.75 * self.safety_timeout)
     def set_value_from_command(self, value):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt:
@@ -56,11 +56,12 @@ class PWM_tool:
     def get_status(self, eventtime):
         return {'value': self.last_value}
     def _resend_current_val(self, eventtime):
-        print_time = self.mcu_pwm.get_mcu().estimated_print_time(eventtime)
-        # FIXME: will "+.1" interfere with next laser value?
-        self.set_value(print_time+.1, self.last_value, resend=True)
+        # TODO: Split moves into smaller segments to enforce resend
+        toolhead = self.printer.lookup_object('toolhead')
+        toolhead.register_lookahead_callback((lambda pt:
+                              self.set_value(pt, self.last_value, True)))
         if self.last_value != self.shutdown_value:
-            return eventtime + 0.8 * self.safety_timeout
+            return eventtime + 0.75 * self.safety_timeout
         return self.reactor.NEVER
 
 class PrinterSpindle:
