@@ -119,7 +119,6 @@ class MCU_endstop:
 class MCU_digital_out:
     def __init__(self, mcu, pin_params):
         self._mcu = mcu
-        self._th = None
         self._oid = None
         self._mcu.register_config_callback(self._build_config)
         self._pin = pin_params['pin']
@@ -128,7 +127,6 @@ class MCU_digital_out:
         self._is_static = False
         self._max_duration = 2.
         self._last_clock = 0
-        self._ffi_main, self._ffi_lib = chelper.get_ffi()
         self._set_cmd = None
     def get_mcu(self):
         return self._mcu
@@ -145,12 +143,8 @@ class MCU_digital_out:
             self._mcu.add_config_cmd("set_digital_out pin=%s value=%d"
                                      % (self._pin, self._start_value))
             return
+        self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
-        self._th = self._mcu.get_printer().lookup_object('toolhead')
-        self._sync_channel = self._ffi_main.gc(
-            self._ffi_lib.sync_channel_alloc(self._oid),
-            self._ffi_lib.sync_channel_free)
-        self._mcu.register_sync_channel(self._sync_channel)
         self._mcu.add_config_cmd(
             "config_digital_out oid=%d pin=%s value=%d default_value=%d"
             " max_duration=%d"
@@ -160,18 +154,13 @@ class MCU_digital_out:
                                  % (self._oid, self._start_value),
                                  on_restart=True)
         cmd_queue = self._mcu.alloc_command_queue()
-        self._set_cmd = self._mcu.lookup_command_id(
-            "queue_digital_out oid=%c clock=%u value=%c")
+        self._set_cmd = self._mcu.lookup_command(
+            "queue_digital_out oid=%c clock=%u on_ticks=%u", cq=cmd_queue)
     def set_digital(self, print_time, value):
         clock = self._mcu.print_time_to_clock(print_time)
-        data = (self._set_cmd, self._oid, clock & 0xFFFFFFFF,
-                (not not value) ^ self._invert)
-        self._ffi_lib.sync_channel_queue_msg(
-            self._sync_channel, data, len(data), clock)
-        self._th.note_synchronous_command(print_time)
+        self._set_cmd.send([self._oid, clock, (not not value) ^ self._invert],
+                           minclock=self._last_clock, reqclock=clock)
         self._last_clock = clock
-    def set_pwm(self, print_time, value, cycle_time=None):
-        self.set_digital(print_time, value >= 0.5)
 
 class MCU_pwm:
     def __init__(self, mcu, pin_params):
@@ -249,25 +238,26 @@ class MCU_pwm:
             self._mcu.add_config_cmd("set_digital_out pin=%s value=%d"
                                      % (self._pin, self._start_value >= 0.5))
             return
+        self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
         self._mcu.add_config_cmd(
-            "config_soft_pwm_out oid=%d pin=%s value=%d"
+            "config_digital_out oid=%d pin=%s value=%d"
             " default_value=%d max_duration=%d"
             % (self._oid, self._pin, self._start_value >= 1.0,
                self._shutdown_value >= 0.5,
                self._mcu.seconds_to_clock(self._max_duration)))
         self._mcu.add_config_cmd(
-            "set_soft_pwm_cycle_ticks oid=%d cycle_ticks=%d"
+            "set_digital_out_pwm_cycle oid=%d cycle_ticks=%d"
             % (self._oid, cycle_ticks))
         self._last_cycle_ticks = cycle_ticks
         svalue = int(self._start_value * cycle_ticks + 0.5)
         self._mcu.add_config_cmd(
-            "queue_soft_pwm_out oid=%d clock=%d on_ticks=%d"
+            "queue_digital_out oid=%d clock=%d on_ticks=%d"
             % (self._oid, self._last_clock, svalue), is_init=True)
-        self._set_cmd = self._mcu.lookup_command_id(
-            "queue_soft_pwm_out oid=%c clock=%u on_ticks=%u")
+        self._set_cmd = self._mcu.lookup_command(
+            "queue_digital_out oid=%c clock=%u on_ticks=%u", cq=cmd_queue)
         self._set_cycle_ticks = self._mcu.lookup_command(
-            "set_soft_pwm_cycle_ticks oid=%c cycle_ticks=%u", cq=cmd_queue)
+            "set_digital_out_pwm_cycle oid=%c cycle_ticks=%u", cq=cmd_queue)
     def set_pwm(self, print_time, value, cycle_time=None):
         req_clock = self._mcu.print_time_to_clock(print_time)
         # FIXME: let sync_channel replace uncommitted values
@@ -293,14 +283,8 @@ class MCU_pwm:
                                        minclock=minclock, reqclock=clock)
             self._last_cycle_ticks = cycle_ticks
         on_ticks = int(max(0., min(1., value)) * float(cycle_ticks) + 0.5)
-
-        data = (self._set_cmd, self._oid, clock & 0xFFFFFFFF, on_ticks)
-        self._ffi_lib.sync_channel_queue_msg(
-            self._sync_channel, data, len(data), clock)
-        self._th.note_synchronous_command(print_time)
-        #self._set_cmd.send([self._oid, clock, on_ticks],
-        #                  minclock=minclock, reqclock=clock)
-
+        self._set_cmd.send([self._oid, clock, on_ticks],
+                           minclock=minclock, reqclock=clock)
 class MCU_adc:
     def __init__(self, mcu, pin_params):
         self._mcu = mcu

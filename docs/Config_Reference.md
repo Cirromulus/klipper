@@ -116,6 +116,9 @@ the "kinematics" option in the [printer] config section) require
 different names for the stepper (eg, `stepper_x` vs `stepper_a`).
 Below are common stepper definitions.
 
+See the [rotation distance document](Rotation_Distance.md) for
+information on calculating the `rotation_distance` parameter.
+
 ```
 [stepper_x]
 step_pin:
@@ -127,9 +130,24 @@ enable_pin:
 #   Enable pin (default is enable high; use ! to indicate enable
 #   low). If this parameter is not provided then the stepper motor
 #   driver must always be enabled.
-step_distance:
-#   Distance in mm that each step causes the axis to travel. This
+rotation_distance:
+#   Distance (in mm) that the axis travels with one full rotation of
+#   the stepper motor. This parameter must be provided.
+microsteps:
+#   The number of microsteps the stepper motor driver uses. This
 #   parameter must be provided.
+#full_steps_per_rotation: 200
+#   The number of full steps for one rotation of the stepper motor.
+#   Set this to 200 for a 1.8 degree stepper motor or set to 400 for a
+#   0.9 degree motor. The default is 200.
+#gear_ratio:
+#   The gear ratio if the stepper motor is connected to the axis via a
+#   gearbox. For example, one may specify "5:1" if a 5 to 1 gearbox is
+#   in use. If the axis has multiple gearboxes one may specify a comma
+#   separated list of gear ratios (for example, "57:11, 2:1"). If a
+#   gear_ratio is specified then rotation_distance specifies the
+#   distance the axis travels for one full rotation of the final gear.
+#   The default is to not use a gear ratio.
 endstop_pin:
 #   Endstop switch detection pin. This parameter must be provided for
 #   the X, Y, and Z steppers on cartesian style printers.
@@ -367,11 +385,11 @@ kinematics: polar
 # The stepper_bed section is used to describe the stepper controlling
 # the bed.
 [stepper_bed]
-step_distance:
-#   On a polar printer the step_distance is the amount each step pulse
-#   moves the bed in radians (for example, a 1.8 degree stepper with
-#   16 micro-steps would be 2 * pi * (1.8 / 360) / 16 == 0.001963495).
-#   This parameter must be provided.
+gear_ratio:
+#   A gear_ratio must be specified and rotation_distance may not be
+#   specified. For example, if the bed has an 80 toothed pulley driven
+#   by a stepper with a 16 toothed pulley then one would specify a
+#   gear ratio of "80:16". This parameter must be provided.
 max_z_velocity:
 #   This sets the maximum velocity (in mm/s) of movement along the z
 #   axis. This setting can be used to restrict the maximum speed of
@@ -429,11 +447,13 @@ shoulder_height:
 # right arm (at 30 degrees). This section also controls the homing
 # parameters (homing_speed, homing_retract_dist) for all arms.
 [stepper_a]
-step_distance:
-#   On a rotary delta printer the step_distance is the amount each
-#   step pulse moves the upper arm in radians (for example, a directly
-#   connected 1.8 degree stepper with 16 micro-steps would be 2 * pi *
-#   (1.8 / 360) / 16 == 0.001963495). This parameter must be provided.
+gear_ratio:
+#   A gear_ratio must be specified and rotation_distance may not be
+#   specified. For example, if the arm has an 80 toothed pulley driven
+#   by a pulley with 16 teeth, which is in turn connected to a 60
+#   toothed pulley driven by a stepper with a 16 toothed pulley, then
+#   one would specify a gear ratio of "80:16, 60:16". This parameter
+#   must be provided.
 position_endstop:
 #   Distance (in mm) between the nozzle and the bed when the nozzle is
 #   in the center of the build area and the endstop triggers. This
@@ -501,10 +521,10 @@ kinematics: winch
 # cable winch. A minimum of 3 and a maximum of 26 cable winches may be
 # defined (stepper_a to stepper_z) though it is common to define 4.
 [stepper_a]
-step_distance:
-#   The step_distance is the nominal distance (in mm) the toolhead
-#   moves towards the cable winch on each step pulse. This parameter
-#   must be provided.
+rotation_distance:
+#   The rotation_distance is the nominal distance (in mm) the toolhead
+#   moves towards the cable winch for each full rotation of the
+#   stepper motor. This parameter must be provided.
 anchor_x:
 anchor_y:
 anchor_z:
@@ -541,7 +561,8 @@ tuning pressure advance.
 step_pin:
 dir_pin:
 enable_pin:
-step_distance:
+microsteps:
+rotation_distance:
 #   See the "stepper" section for a description of the above parameters.
 nozzle_diameter:
 #   Diameter of the nozzle orifice (in mm). This parameter must be
@@ -1094,21 +1115,17 @@ for additional information.
 
 ```
 [endstop_phase stepper_z]
-#phases:
-#   This specifies the number of phases of the given stepper motor
-#   driver (which is the number of micro-steps multiplied by four).
-#   This setting is automatically determined if one uses a TMC driver
-#   with run-time configuration. Otherwise, this parameter must be
-#   provided.
 #endstop_accuracy:
 #   Sets the expected accuracy (in mm) of the endstop. This represents
 #   the maximum error distance the endstop may trigger (eg, if an
 #   endstop may occasionally trigger 100um early or up to 100um late
 #   then set this to 0.200 for 200um). The default is
-#   phases*step_distance.
-#endstop_phase:
+#   4*rotation_distance/full_steps_per_rotation.
+#trigger_phase:
 #   This specifies the phase of the stepper motor driver to expect
-#   when hitting the endstop. Only set this value if one is sure the
+#   when hitting the endstop. It is composed of two numbers separated
+#   by a forward slash character - the phase and the total number of
+#   phases (eg, "7/64"). Only set this value if one is sure the
 #   stepper motor driver is reset every time the mcu is reset. If this
 #   is not set, then the stepper phase will be detected on the first
 #   home and that phase will be used on all subsequent homes.
@@ -1348,9 +1365,9 @@ the [command reference](G-Codes.md#resonance-compensation).
 #damping_ratio_x: 0.1
 #damping_ratio_y: 0.1
 #   Damping ratios of vibrations of X and Y axes used by input shapers
-#   to improve vibration suppression. Should not be changed without
-#   some proper measurements, e.g. with an accelerometer. Default
-#   value is 0.1 which is a good all-round value for most printers.
+#   to improve vibration suppression. Default value is 0.1 which is a
+#   good all-round value for most printers. In most circumstances this
+#   parameter requires no tuning and should not be changed.
 ```
 
 ## [adxl345]
@@ -1365,8 +1382,7 @@ an explicit name (eg, [adxl345 my_chip_name]).
 ```
 [adxl345]
 cs_pin:
-#   The SPI enable pin for the sensor. This parameter must be
-#   provided.
+#   The SPI enable pin for the sensor. This parameter must be provided.
 #spi_speed: 5000000
 #   The SPI speed (in hz) to use when communicating with the chip.
 #   The default is 5000000.
@@ -1374,8 +1390,8 @@ cs_pin:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
-#   These optional parameters allow one to customize the SPI settings
-#   used to communicate with the chip.
+#   See the "common SPI settings" section for a description of the
+#   above parameters.
 #axes_map: x,y,z
 #   The accelerometer axis for each of the printer's x, y, and z axes.
 #   This may be useful if the accelerometer is mounted in an
@@ -1398,7 +1414,9 @@ In order to use most of the functionality of this module, additional
 software dependencies must be installed; refer to
 [Measuring Resonances](Measuring_Resonances.md) and the
 [command reference](G-Codes.md#resonance-testing-commands) for more
-information.
+information. See the [Max smoothing](Measuring_Resonances.md#max-smoothing)
+section of the measuring resonances guide for more information on
+`max_smoothing` parameter and its use.
 
 ```
 [resonance_tester]
@@ -1422,6 +1440,11 @@ information.
 #   and on the toolhead (for X axis). These parameters have the same
 #   format as 'accel_chip' parameter. Only 'accel_chip' or these two
 #   parameters must be provided.
+#max_smoothing:
+#   Maximum input shaper smoothing to allow for each axis during shaper
+#   auto-calibration (with 'SHAPER_CALIBRATE' command). By default no
+#   maximum smoothing is specified. Refer to Measuring_Resonances guide
+#   for more details on using this feature.
 #min_freq: 5
 #   Minimum frequency to test for resonances. The default is 5 Hz.
 #max_freq: 120
@@ -1553,8 +1576,9 @@ section for the details).
 ```
 [bltouch]
 sensor_pin:
-#   Pin connected to the BLTouch sensor pin. This parameter must be
-#   provided.
+#   Pin connected to the BLTouch sensor pin. Most BLTouch devices
+#   require a pullup on the sensor pin (prefix the pin name with "^").
+#   This parameter must be provided.
 control_pin:
 #   Pin connected to the BLTouch control pin. This parameter must be
 #   provided.
@@ -1613,7 +1637,8 @@ at 1 (for example, "stepper_z1", "stepper_z2", etc.).
 #step_pin:
 #dir_pin:
 #enable_pin:
-#step_distance:
+#microsteps:
+#rotation_distance:
 #   See the "stepper" section for the definition of the above parameters.
 #endstop_pin:
 #   If an endstop_pin is defined for the additional stepper then the
@@ -1670,7 +1695,8 @@ axis:
 #step_pin:
 #dir_pin:
 #enable_pin:
-#step_distance:
+#microsteps:
+#rotation_distance:
 #endstop_pin:
 #position_endstop:
 #position_min:
@@ -1695,7 +1721,8 @@ more information.
 #step_pin:
 #dir_pin:
 #enable_pin:
-#step_distance:
+#microsteps:
+#rotation_distance:
 #   See the "stepper" section for the definition of the above
 #   parameters.
 ```
@@ -1715,7 +1742,8 @@ normal printer kinematics.
 #step_pin:
 #dir_pin:
 #enable_pin:
-#step_distance:
+#microsteps:
+#rotation_distance:
 #   See the "stepper" section for a description of these parameters.
 #velocity:
 #   Set the default velocity (in mm/s) for the stepper. This value
@@ -1914,6 +1942,9 @@ section).
 
 ## Common thermistors
 
+Common thermistors. The following parameters are available in heater
+sections that use one of these sensors.
+
 ```
 sensor_type:
 #   One of "EPCOS 100K B57560G104F", "ATC Semitec 104GT-2",
@@ -1921,17 +1952,15 @@ sensor_type:
 #   "NTC 100K MGB18-104F39050L32", "SliceEngineering 450", or
 #   "TDK NTCG104LH104JT1"
 sensor_pin:
-#   Analog input pin connected to the sensor. This parameter must be
-#   provided.
+#   Analog input pin connected to the thermistor. This parameter must
+#   be provided.
 #pullup_resistor: 4700
 #   The resistance (in ohms) of the pullup attached to the thermistor.
-#   This parameter is only valid when the sensor is a thermistor. The
-#   default is 4700 ohms.
+#   The default is 4700 ohms.
 #inline_resistor: 0
 #   The resistance (in ohms) of an extra (not heat varying) resistor
 #   that is placed inline with the thermistor. It is rare to set this.
-#   This parameter is only valid when the sensor is a thermistor. The
-#   default is 0 ohms.
+#   The default is 0 ohms.
 ```
 
 ## Common temperature amplifiers
@@ -1986,8 +2015,8 @@ sensor_pin:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
-#   These optional parameters allow one to customize the SPI settings
-#   used to communicate with the chip.
+#   See the "common SPI settings" section for a description of the
+#   above parameters.
 #tc_type: K
 #tc_use_50Hz_filter: False
 #tc_averaging_count: 1
@@ -2019,14 +2048,10 @@ sensor_type: bme280
 #   Default is 118 (0x76). Some BME280 sensors have an address of 119
 #   (0x77).
 #i2c_mcu:
-#   MCU the sensor is connected to. Default is the primary mcu.
 #i2c_bus:
-#   The I2C bus the sensor is connected to. On some MCU platforms the
-#   default is bus 0. On platforms without bus 0 this parameter is
-#   required.
 #i2c_speed:
-#   The I2C speed (in Hz) to use when communicating with the sensor.
-#   Default is 100000. On some MCUs changing this value has no effect.
+#   See the "common I2C settings" section for a description of the
+#   above parameters.
 ```
 
 ## HTU21D sensor
@@ -2044,14 +2069,10 @@ sensor_type:
 #i2c_address:
 #   Default is 64 (0x40).
 #i2c_mcu:
-#   MCU the sensor is connected to. Default is the primary mcu.
 #i2c_bus:
-#   The I2C bus the sensor is connected to. On some MCU platforms the
-#   default is bus 0. On platforms without bus 0 this parameter is
-#   required.
 #i2c_speed:
-#   The I2C speed (in Hz) to use when communicating with the sensor.
-#   Default is 100000. On some MCUs changing this value has no effect.
+#   See the "common I2C settings" section for a description of the
+#   above parameters.
 #htu21d_hold_master:
 #   If the sensor can hold the I2C buf while reading. If True no other
 #   bus communication can be performed while reading is in progress.
@@ -2081,17 +2102,47 @@ sensor_type: lm75
 #   low bits of the address are configured via pins on the chip
 #   (usually with jumpers or hard wired).
 #i2c_mcu:
-#   MCU the sensor is connected to. Default is the primary mcu.
 #i2c_bus:
-#   The I2C bus the sensor is connected to. On some MCU platforms the
-#   default is bus 0. On platforms without bus 0 this parameter is
-#   required.
 #i2c_speed:
-#   The I2C speed (in Hz) to use when communicating with the sensor.
-#   Default is 100000. On some MCUs changing this value has no effect.
+#   See the "common I2C settings" section for a description of the
+#   above parameters.
 #lm75_report_time:
 #   Interval in seconds between readings. Default is 0.8, with minimum
 #   0.5.
+```
+
+## Builtin micro-controller temperature sensor
+
+The atsam, atsamd, and stm32 micro-controllers contain an internal
+temperature sensor. One can use the "temperature_mcu" sensor to
+monitor these temperatures.
+
+```
+sensor_type: temperature_mcu
+#sensor_mcu: mcu
+#   The micro-controller to read from. The default is "mcu".
+#sensor_temperature1:
+#sensor_adc1:
+#   Specify the above two parameters (a temperature in Celsius and an
+#   ADC value as a float between 0.0 and 1.0) to calibrate the
+#   micro-controller temperature. This may improve the reported
+#   temperature accuracy on some chips. A typical way to obtain this
+#   calibration information is to completely remove power from the
+#   printer for a few hours (to ensure it is at the ambient
+#   temperature), then power it up and use the QUERY_ADC command to
+#   obtain an ADC measurement. Use some other temperature sensor on
+#   the printer to find the corresponding ambient temperature. The
+#   default is to use the factory calibration data on the
+#   micro-controller (if applicable) or the nominal values from the
+#   micro-controller specification.
+#sensor_temperature2:
+#sensor_adc2:
+#   If sensor_temperature1/sensor_adc1 is specified then one may also
+#   specify sensor_temperature2/sensor_adc2 calibration data. Doing so
+#   may provide calibrated "temperature slope" information. The
+#   default is to use the factory calibration data on the
+#   micro-controller (if applicable) or the nominal values from the
+#   micro-controller specification.
 ```
 
 ## RPi temperature sensor
@@ -2501,17 +2552,13 @@ cs_pin:
 #   The pin corresponding to the TMC2130 chip select line. This pin
 #   will be set to low at the start of SPI messages and raised to high
 #   after the message completes. This parameter must be provided.
-#spi_bus:
 #spi_speed:
+#spi_bus:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
-#   These optional parameters allow one to customize the SPI settings
-#   used to communicate with the chip.
-microsteps:
-#   The number of microsteps to configure the driver to use. Valid
-#   values are 1, 2, 4, 8, 16, 32, 64, 128, 256. This parameter must
-#   be provided.
+#   See the "common SPI settings" section for a description of the
+#   above parameters.
 #interpolate: True
 #   If true, enable step interpolation (the driver will internally
 #   step at a rate of 256 micro-steps). The default is True.
@@ -2578,10 +2625,6 @@ uart_pin:
 #   A comma separated list of pins to set prior to accessing the
 #   tmc2208 UART. This may be useful for configuring an analog mux for
 #   UART communication. The default is to not configure any pins.
-microsteps:
-#   The number of microsteps to configure the driver to use. Valid
-#   values are 1, 2, 4, 8, 16, 32, 64, 128, 256. This parameter must
-#   be provided.
 #interpolate: True
 #   If true, enable step interpolation (the driver will internally
 #   step at a rate of 256 micro-steps). The default is True.
@@ -2631,7 +2674,6 @@ by the name of the corresponding stepper config section (for example,
 uart_pin:
 #tx_pin:
 #select_pins:
-#microsteps:
 #interpolate: True
 run_current:
 #hold_current:
@@ -2683,23 +2725,15 @@ cs_pin:
 #   will be set to low at the start of SPI messages and set to high
 #   after the message transfer completes. This parameter must be
 #   provided.
-#spi_bus:
-#   Select the SPI bus the TMC2660 stepper driver is connected to.
-#   This depends on the physical connections on your board, as well as
-#   the SPI implementation of your particular micro-controller. The
-#   default is to use the default micro-controller spi bus.
 #spi_speed: 4000000
 #   SPI bus frequency used to communicate with the TMC2660 stepper
 #   driver. The default is 4000000.
+#spi_bus:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
-#   These optional parameters allow one to customize the SPI settings
-#   used to communicate with the chip.
-microsteps:
-#   The number of microsteps to configure the driver to use. Valid
-#   values are 1, 2, 4, 8, 16, 32, 64, 128, 256. This parameter must
-#   be provided.
+#   See the "common SPI settings" section for a description of the
+#   above parameters.
 #interpolate: True
 #   If true, enable step interpolation (the driver will internally
 #   step at a rate of 256 micro-steps). This only works if microsteps
@@ -2760,17 +2794,13 @@ cs_pin:
 #   The pin corresponding to the TMC5160 chip select line. This pin
 #   will be set to low at the start of SPI messages and raised to high
 #   after the message completes. This parameter must be provided.
-#spi_bus:
 #spi_speed:
+#spi_bus:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
-#   These optional parameters allow one to customize the SPI settings
-#   used to communicate with the chip.
-microsteps:
-#   The number of microsteps to configure the driver to use. Valid
-#   values are 1, 2, 4, 8, 16, 32, 64, 128, 256. This parameter must
-#   be provided.
+#   See the "common SPI settings" section for a description of the
+#   above parameters.
 #interpolate: True
 #   If true, enable step interpolation (the driver will internally
 #   step at a rate of 256 micro-steps). The default is True.
@@ -2847,13 +2877,13 @@ enable_pin:
 #   The pin corresponding to the AD5206 chip select line. This pin
 #   will be set to low at the start of SPI messages and raised to high
 #   after the message completes. This parameter must be provided.
-#spi_bus:
 #spi_speed:
+#spi_bus:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
-#   These optional parameters allow one to customize the SPI settings
-#   used to communicate with the chip.
+#   See the "common SPI settings" section for a description of the
+#   above parameters.
 #channel_1:
 #channel_2:
 #channel_3:
@@ -2889,6 +2919,11 @@ define any number of sections with an "mcp4451" prefix).
 i2c_address:
 #   The i2c address that the chip is using on the i2c bus. This
 #   parameter must be provided.
+#i2c_mcu:
+#i2c_bus:
+#i2c_speed:
+#   See the "common I2C settings" section for a description of the
+#   above parameters.
 #wiper_0:
 #wiper_1:
 #wiper_2:
@@ -2917,12 +2952,14 @@ prefix).
 
 ```
 [mcp4728 my_dac]
-#i2c_mcu: mcu
-#   The name of the micro-controller that the MCP4451 chip is
-#   connected to. The default is "mcu".
 #i2c_address: 96
 #   The i2c address that the chip is using on the i2c bus. The default
 #   is 96.
+#i2c_mcu:
+#i2c_bus:
+#i2c_speed:
+#   See the "common I2C settings" section for a description of the
+#   above parameters.
 #channel_a:
 #channel_b:
 #channel_c:
@@ -3028,15 +3065,15 @@ lcd_type:
 #   The default is False.
 #cs_pin:
 #dc_pin:
-#spi_bus:
 #spi_speed:
+#spi_bus:
 #spi_software_sclk_pin:
 #spi_software_mosi_pin:
 #spi_software_miso_pin:
 #   The pins connected to an ssd1306 type lcd when in "4-wire" spi
-#   mode. The parameters that start with "spi_" are optional and they
-#   control the spi settings used to communicate with the chip. The
-#   default is to use i2c mode for ssd1306 displays.
+#   mode. See the "common SPI settings" section for a description of
+#   the parameters that start with "spi_". The default is to use i2c
+#   mode for ssd1306 displays.
 #reset_pin:
 #   A reset pin may be specified on ssd1306 displays. If it is not
 #   specified then the hardware must have a pull-up on the
@@ -3433,9 +3470,11 @@ i2c_address:
 #   I2C address used by this expander. Depending on the hardware
 #   jumpers this is one out of the following addresses: 62 63 112
 #   113. This parameter must be provided.
-#i2c_mcu: mcu
-#   The name of the micro-controller that the SX1509 chip is connected
-#   to. The default is "mcu".
+#i2c_mcu:
+#i2c_bus:
+#i2c_speed:
+#   See the "common I2C settings" section for a description of the
+#   above parameters.
 #i2c_bus:
 #   If the I2C implementation of your micro-controller supports
 #   multiple I2C busses, you may specify the bus name here. The
@@ -3556,4 +3595,50 @@ host_mcu:
 #stepper_h_chopper_blank_time_high:
 #   This parameter controls the CFG5 pin of the stepper motor driver
 #   (True sets CFG5 high, False sets it low). The default is True.
+```
+
+# Common bus parameters
+
+## Common SPI settings
+
+The following parameters are generally available for devices using an
+SPI bus.
+
+```
+#spi_speed:
+#   The SPI speed (in hz) to use when communicating with the device.
+#   The default depends on the type of device.
+#spi_bus:
+#   If the micro-controller supports multiple SPI busses then one may
+#   specify the micro-controller bus name here. The default depends on
+#   the type of micro-controller.
+#spi_software_sclk_pin:
+#spi_software_mosi_pin:
+#spi_software_miso_pin:
+#   Specify the above parameters to use "software based SPI". This
+#   mode does not require micro-controller hardware support (typically
+#   any general purpose pins may be used). The default is to not use
+#   "software spi".
+```
+
+## Common I2C settings
+
+The following parameters are generally available for devices using an
+I2C bus.
+
+```
+#i2c_address:
+#   The i2c address of the device. This must specified as a decimal
+#   number (not in hex). The default depends on the type of device.
+#i2c_mcu:
+#   The name of the micro-controller that the chip is connected to.
+#   The default is "mcu".
+#i2c_bus:
+#   If the micro-controller supports multiple I2C busses then one may
+#   specify the micro-controller bus name here. The default depends on
+#   the type of micro-controller.
+#i2c_speed:
+#   The I2C speed (in Hz) to use when communicating with the device.
+#   On some micro-controllers changing this value has no effect. The
+#   default is 100000.
 ```
