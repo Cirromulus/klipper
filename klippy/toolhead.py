@@ -534,11 +534,11 @@ class ToolHead:
         last_move.timing_callbacks.append(callback)
     def note_synchronous_command(self, kin_time):
         self.note_kinematic_activity(kin_time)
-        if self.special_queuing_state == "Drip":
-            self._update_drip_move_time(kin_time)
-        else:
-            self._update_move_time(kin_time)
-            self._check_stall()
+        #if self.special_queuing_state == "Drip":
+        #    self._update_drip_move_time(kin_time)
+        #else:
+        #    self._update_move_time(kin_time)
+        self._check_stall()
     def note_kinematic_activity(self, kin_time):
         self.last_kin_move_time = max(self.last_kin_move_time, kin_time)
     def get_max_velocity(self):

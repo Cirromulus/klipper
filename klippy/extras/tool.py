@@ -31,7 +31,7 @@ class PWM_tool:
         self.printer.register_event_handler("gcode:request_restart",
                                             self._handle_request_restart)
     def get_mcu(self):
-        return self.mcu_fan.get_mcu()
+        return self.mcu_pwm.get_mcu()
     def set_value(self, print_time, value, resend=False):
         if value < self.off_below:
             value = 0.
