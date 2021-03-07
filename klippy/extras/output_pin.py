@@ -55,7 +55,6 @@ class PrinterOutputPin:
             if not is_resend:
                 return
         print_time = max(print_time, self.last_print_time + PIN_MIN_TIME)
-        print("Setting pin at " + str(print_time))
         if self.is_pwm:
             self.mcu_pin.set_pwm(print_time, value, cycle_time)
         else:
@@ -64,8 +63,10 @@ class PrinterOutputPin:
         self.last_cycle_time = cycle_time
         self.last_print_time = print_time
         if self.safety_timeout != 0 and not is_resend:
-            if value != self.shutdown_value:
-                print("Starting resend timer at " + str(self.reactor.monotonic()))
+            if value == self.shutdown_value:
+                self.reactor.update_timer(
+                    self.resend_timer, self.reactor.NEVER)
+            else:
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.monotonic())
     cmd_SET_PIN_help = "Set the value of an output pin"
@@ -81,10 +82,6 @@ class PrinterOutputPin:
             lambda print_time: self._set_pin(print_time, value, cycle_time))
 
     def _resend_current_val(self, eventtime):
-        # TODO: Split moves into smaller segments to enforce resend?
-        print("Resend timer at " + str(eventtime))
-        print("Scheduling set_pin at " + str(self.last_print_time + 0.8 * self.safety_timeout))
-        print("Re-running at " + str(eventtime + 0.7 * self.safety_timeout))
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lambda print_time:
             self._set_pin(self.last_print_time + 0.8 * self.safety_timeout,
