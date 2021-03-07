@@ -83,8 +83,8 @@ class PrinterOutputPin:
     def _resend_current_val(self, eventtime):
         # TODO: Split moves into smaller segments to enforce resend?
         print("Resend timer at " + str(eventtime))
-        print("Scheduling set_pin at " + str(eventtime + 0.25 * self.safety_timeout))
-        print("Re-running at " + str(self.last_print_time + 0.8 * self.safety_timeout))
+        print("Scheduling set_pin at " + str(self.last_print_time + 0.8 * self.safety_timeout))
+        print("Re-running at " + str(eventtime + 0.7 * self.safety_timeout))
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lambda print_time:
             self._set_pin(self.last_print_time + 0.8 * self.safety_timeout,
