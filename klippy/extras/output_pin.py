@@ -37,7 +37,7 @@ class PrinterOutputPin:
             self.mcu_pin.setup_max_duration(self.safety_timeout)
             self.resend_timer = self.reactor.register_timer(
                 self._resend_current_val)
-                    
+
             self.last_value = config.getfloat(
                 'value', 0., minval=0., maxval=self.scale) / self.scale
             self.shutdown_value = config.getfloat(
@@ -83,7 +83,7 @@ class PrinterOutputPin:
         # TODO: Split moves into smaller segments to enforce resend?
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt:
-                              self.set_value(pt, self.last_value, True)))
+                              self._set_pin(pt, self.last_value, self.last_cycle_time, True)))
         if self.last_value != self.shutdown_value:
             return eventtime + 0.75 * self.safety_timeout
         return self.reactor.NEVER
