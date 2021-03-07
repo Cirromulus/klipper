@@ -55,6 +55,7 @@ class PrinterOutputPin:
             if not is_resend:
                 return
         print_time = max(print_time, self.last_print_time + PIN_MIN_TIME)
+        print("Setting pin at " + str(print_time))
         if self.is_pwm:
             self.mcu_pin.set_pwm(print_time, value, cycle_time)
         else:
