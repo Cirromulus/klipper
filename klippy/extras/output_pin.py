@@ -64,6 +64,7 @@ class PrinterOutputPin:
         self.last_print_time = print_time
         if self.safety_timeout != 0 and not is_resend:
             if value != self.shutdown_value:
+                print("Starting resend timer at " + str(self.reactor.monotonic()))
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.monotonic())
     cmd_SET_PIN_help = "Set the value of an output pin"
@@ -80,13 +81,16 @@ class PrinterOutputPin:
 
     def _resend_current_val(self, eventtime):
         # TODO: Split moves into smaller segments to enforce resend?
+        print("Resend timer at " + str(eventtime))
+        print("Scheduling set_pin at " + str(eventtime + 0.25 * self.safety_timeout))
+        print("Re-running at " + str(eventtime + 0.5 * self.safety_timeout))
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(lambda print_time:
-            self._set_pin(eventtime + 0.75 * self.safety_timeout,
+            self._set_pin(eventtime + 0.25 * self.safety_timeout,
                            self.last_value, self.last_cycle_time, True)
             )
         if self.last_value != self.shutdown_value:
-            return eventtime + 0.5 * self.safety_timeout
+            return eventtime + 0.5 * self.safety_timeout    #every 0.5 t/o
         return self.reactor.NEVER
 
 def load_config_prefix(config):
