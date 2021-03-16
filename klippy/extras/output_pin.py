@@ -33,10 +33,12 @@ class PrinterOutputPin:
                 self.last_value, self.last_value, True)
         else:
             self.reactor = self.printer.get_reactor()
-            self.safety_timeout = config.getfloat('safety_timeout', 0,
-                                        minval=0.)
-            self.relax_margin = 0.1 * self.safety_timeout + PIN_MIN_TIME
-            self.mcu_pin.setup_max_duration(self.safety_timeout)
+            self.host_ack_timeout = config.getfloat('host_acknowledge_timeout',
+                                                    0, minval=0.)
+            #ensure that safety timeout is big enough for comm. latency
+            if self.host_ack_timeout > 0:
+                self.host_ack_timeout = max(self.host_ack_timeout, 0.500)
+            self.mcu_pin.setup_max_duration(self.host_ack_timeout)
             self.resend_timer = self.reactor.register_timer(
                 self._resend_current_val)
 
@@ -64,7 +66,7 @@ class PrinterOutputPin:
         self.last_value = value
         self.last_cycle_time = cycle_time
         self.last_print_time = print_time
-        if self.safety_timeout != 0 and not is_resend:
+        if self.host_ack_timeout != 0 and not is_resend:
             if value == self.shutdown_value:
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.NEVER)
@@ -85,11 +87,11 @@ class PrinterOutputPin:
 
     def _resend_current_val(self, eventtime):
         print_time = self.mcu_pin.get_mcu().estimated_print_time(eventtime)
-        self._set_pin(print_time + self.relax_margin,
+        self._set_pin(print_time + PIN_MIN_TIME,
                        self.last_value, self.last_cycle_time, True)
 
         if self.last_value != self.shutdown_value:
-            return eventtime + (0.8 * self.safety_timeout) - self.relax_margin
+            return eventtime + (0.8 * self.host_ack_timeout) - PIN_MIN_TIME
         return self.reactor.NEVER
 
 def load_config_prefix(config):
