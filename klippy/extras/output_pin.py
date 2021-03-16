@@ -66,16 +66,17 @@ class PrinterOutputPin:
         self.last_value = value
         self.last_cycle_time = cycle_time
         self.last_print_time = print_time
-        if self.host_ack_timeout != 0:
+        if self.host_ack_timeout != 0 and not is_resend:
             if value == self.shutdown_value:
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.NEVER)
             else:
-                print("Schedule timer to " + str(self.reactor.monotonic())
-                      + "+" + str((0.8 * self.host_ack_timeout) - PIN_LATENCY))
+                eventtime = self.mcu_pin.get_mcu()._clocksync.estimate_clock_systime(print_time)
+                #print(" Schedule timer to " + str(eventtime)
+                #      + "+" + str((0.5 * self.host_ack_timeout) - PIN_LATENCY))
                 self.reactor.update_timer(
-                    self.resend_timer, self.reactor.monotonic() +
-                    (0.8 * self.host_ack_timeout) - PIN_LATENCY)
+                    self.resend_timer, eventtime +
+                    (0.5 * self.host_ack_timeout) - PIN_LATENCY)
     cmd_SET_PIN_help = "Set the value of an output pin"
     def cmd_SET_PIN(self, gcmd):
         value = gcmd.get_float('VALUE', minval=0., maxval=self.scale)
@@ -90,11 +91,13 @@ class PrinterOutputPin:
 
     def _resend_current_val(self, eventtime):
         print_time = self.mcu_pin.get_mcu().estimated_print_time(eventtime)
-        print("resend timer at " + str(eventtime) + "(" + str(print_time)
-              + "), scheduling for " + str(print_time + PIN_LATENCY))
+        #print(" resend timer at " + str(eventtime) + "(" + str(print_time)
+        #      + "), scheduling for " + str(print_time + PIN_LATENCY))
         self._set_pin(print_time + PIN_LATENCY,
                        self.last_value, self.last_cycle_time, True)
 
+        if self.last_value != self.shutdown_value:
+            return eventtime + (0.5 * self.host_ack_timeout) - PIN_LATENCY
         return self.reactor.NEVER
 
 def load_config_prefix(config):
