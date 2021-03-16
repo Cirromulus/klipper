@@ -58,7 +58,7 @@ class PrinterOutputPin:
         if value == self.last_value and cycle_time == self.last_cycle_time:
             if not is_resend:
                 return
-        print_time = max(print_time, self.last_print_time + 0.0001)
+        print_time = max(print_time, self.last_print_time)
         if self.is_pwm:
             self.mcu_pin.set_pwm(print_time, value, cycle_time)
         else:
@@ -71,8 +71,8 @@ class PrinterOutputPin:
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.NEVER)
             else:
-                print("Schedule timer to " + str(self.reactor.monotonic())
-                      + "+" + str((0.8 * self.host_ack_timeout) - PIN_LATENCY))
+                #print("Schedule timer to " + str(self.reactor.monotonic())
+                #      + "+" + str((0.8 * self.host_ack_timeout) - PIN_LATENCY))
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.monotonic() +
                     (0.8 * self.host_ack_timeout) - PIN_LATENCY)
@@ -89,10 +89,9 @@ class PrinterOutputPin:
             lambda print_time: self._set_pin(print_time, value, cycle_time))
 
     def _resend_current_val(self, eventtime):
-        print("resend timer at " + str(eventtime) + "(" + str(print_time)
-              + "), scheduling for " + str(print_time + PIN_LATENCY))
-
         print_time = self.mcu_pin.get_mcu().estimated_print_time(eventtime)
+        #print("resend timer at " + str(eventtime) + "(" + str(print_time)
+        #      + "), scheduling for " + str(print_time + PIN_LATENCY))
         self._set_pin(print_time + PIN_LATENCY,
                        self.last_value, self.last_cycle_time, True)
 
