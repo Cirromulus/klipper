@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-PIN_LATENCY = 0.100
+PIN_LATENCY = 0.200
 
 
 class PrinterOutputPin:
@@ -66,13 +66,13 @@ class PrinterOutputPin:
         self.last_value = value
         self.last_cycle_time = cycle_time
         self.last_print_time = print_time
-        if self.host_ack_timeout != 0 and not is_resend:
+        if self.host_ack_timeout != 0:
             if value == self.shutdown_value:
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.NEVER)
             else:
-                #print("Schedule timer to " + str(self.reactor.monotonic())
-                #      + "+" + str((0.8 * self.host_ack_timeout) - PIN_LATENCY))
+                print("Schedule timer to " + str(self.reactor.monotonic())
+                      + "+" + str((0.8 * self.host_ack_timeout) - PIN_LATENCY))
                 self.reactor.update_timer(
                     self.resend_timer, self.reactor.monotonic() +
                     (0.8 * self.host_ack_timeout) - PIN_LATENCY)
@@ -90,13 +90,11 @@ class PrinterOutputPin:
 
     def _resend_current_val(self, eventtime):
         print_time = self.mcu_pin.get_mcu().estimated_print_time(eventtime)
-        #print("resend timer at " + str(eventtime) + "(" + str(print_time)
-        #      + "), scheduling for " + str(print_time + PIN_LATENCY))
+        print("resend timer at " + str(eventtime) + "(" + str(print_time)
+              + "), scheduling for " + str(print_time + PIN_LATENCY))
         self._set_pin(print_time + PIN_LATENCY,
                        self.last_value, self.last_cycle_time, True)
 
-        if self.last_value != self.shutdown_value:
-            return eventtime + (0.8 * self.host_ack_timeout) - PIN_LATENCY
         return self.reactor.NEVER
 
 def load_config_prefix(config):
