@@ -94,6 +94,7 @@ class PrinterOutputPin:
             #print("Schedule resend timer to " + str(systime)
             # + " + " + str(time_diff))
             return systime + time_diff
+        #print("setting pin at  " + str(print_time + PIN_LATENCY))
         self._set_pin(print_time + PIN_LATENCY,
                       self.last_value, self.last_cycle_time, True)
         return systime + self.resent_interval
