@@ -315,7 +315,7 @@ class MCU_pwm:
         cmd_queue = self._mcu.alloc_command_queue()
         curtime = self._mcu.get_printer().get_reactor().monotonic()
         printtime = self._mcu.estimated_print_time(curtime)
-        self._last_clock = self._mcu.print_time_to_clock(printtime + 0.200)
+        self._last_clock = self._mcu.print_time_to_clock(printtime + 0.800)
         cycle_ticks = self._mcu.seconds_to_clock(self._cycle_time)
         self._min_clock_diff = cycle_ticks
         self._th = self._mcu.get_printer().lookup_object('toolhead')

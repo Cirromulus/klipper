@@ -4,8 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
-PIN_MIN_TIME = 0.100
-RESEND_HOST_TIME = 0.300 + PIN_MIN_TIME
+RESEND_HOST_TIME = 0.300
 MAX_SCHEDULE_TIME = 5.0
 
 class PrinterOutputPin:
@@ -60,7 +59,7 @@ class PrinterOutputPin:
         if value == self.last_value and cycle_time == self.last_cycle_time:
             if not is_resend:
                 return
-        print_time = max(print_time, self.last_print_time + PIN_MIN_TIME)
+        print_time = max(print_time, self.last_print_time + cycle_time)
         if self.is_pwm:
             self.mcu_pin.set_pwm(print_time, value, cycle_time)
         else:
