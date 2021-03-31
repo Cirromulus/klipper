@@ -94,8 +94,7 @@ class PrinterOutputPin:
         if time_diff > 0.:
             # Reschedule for resend time
             return systime + time_diff
-        self._set_pin(print_time + PIN_MIN_TIME,
-                      self.last_value, self.last_cycle_time, True)
+        self._set_pin(print_time, self.last_value, self.last_cycle_time, True)
         return systime + self.resend_interval
 
 def load_config_prefix(config):
