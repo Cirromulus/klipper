@@ -290,11 +290,16 @@ class MCU_pwm:
         self._set_cmd = self._set_cycle_ticks = None
 
         self._oid = self._mcu.create_oid()
+        self.reactor = self._mcu.get_printer().get_reactor()
+
+        # Todo: Combine that
         self._ffi_main, self._ffi_lib = chelper.get_ffi()
         self._sync_channel = self._ffi_main.gc(
                 self._ffi_lib.sync_channel_alloc(self._oid),
                 self._ffi_lib.sync_channel_free)
         self._mcu.register_sync_channel(self._sync_channel)
+        # ---
+
     def get_mcu(self):
         return self._mcu
     def setup_max_duration(self, max_duration):
@@ -313,7 +318,7 @@ class MCU_pwm:
         self._is_static = is_static
     def _build_config(self):
         cmd_queue = self._mcu.alloc_command_queue()
-        curtime = self._mcu.get_printer().get_reactor().monotonic()
+        curtime = self.reactor.monotonic()
         printtime = self._mcu.estimated_print_time(curtime)
         self._last_clock = self._mcu.print_time_to_clock(printtime + 0.200)
         cycle_ticks = self._mcu.seconds_to_clock(self._cycle_time)
@@ -397,7 +402,12 @@ class MCU_pwm:
 
         self._ffi_lib.sync_channel_queue_msg(self._sync_channel,
                                              data, len(data), clock)
-        self._th.note_synchronous_command(print_time)
+
+        # TODO: Is here actually `register_async_callback` needed?
+        self.reactor.register_callback(
+        #self.reactor.register_async_callback(
+            lambda ev: self._th.note_synchronous_command(print_time))
+
         self._last_clock = clock
 
 class MCU_adc:
