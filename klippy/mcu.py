@@ -405,7 +405,6 @@ class MCU_pwm:
 
         # TODO: Is here actually `register_async_callback` needed?
         self.reactor.register_callback(
-        #self.reactor.register_async_callback(
             lambda ev: self._th.note_synchronous_command(print_time))
 
         self._last_clock = clock

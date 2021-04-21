@@ -540,7 +540,6 @@ class ToolHead:
         """
         Invalid to be called by background tasks
         """
-        self.note_kinematic_activity(kin_time)
 
         # FIXME: with this uncommented, it causes
         # sporadic "invalid step sequence" errors.
@@ -553,14 +552,16 @@ class ToolHead:
         # Also: Is it allowed for a second kin_time
         # to be smaller than a previous one?
 
-        if(kin_time > self.last_kin_move_time):
+        self.note_kinematic_activity(kin_time)
+        if(kin_time >= self.last_kin_move_time):
             if self.special_queuing_state == "Drip":
                 self._update_drip_move_time(kin_time)
             else:
                 self._update_move_time(kin_time)
-        # ---
+            # ---
+            if self.print_time > self.need_check_stall:
+                self._check_stall()
 
-        self._check_stall()
     def get_max_velocity(self):
         return self.max_velocity, self.max_accel
     def _calc_junction_deviation(self):
