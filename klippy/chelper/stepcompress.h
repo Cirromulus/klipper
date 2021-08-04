@@ -31,7 +31,7 @@ int stepcompress_extract_old(struct stepcompress *sc
                              , struct pull_history_steps *p, int max
                              , uint64_t start_clock, uint64_t end_clock);
 
-struct sync_channel *sync_channel_alloc(uint32_t oid);
+struct sync_channel *sync_channel_alloc(); //uint32_t oid); // not needed?
 void sync_channel_free(struct sync_channel *pc);
 void sync_channel_queue_msg(struct sync_channel *pc, uint32_t *data, int len,
         uint64_t req_clock);

@@ -36,6 +36,9 @@ class PrinterOutputPin:
             self.mcu_pin.setup_start_value(
                 self.last_value, self.last_value, True)
         else:
+            if config.getboolean('high_throughput', False):
+                self.mcu_pin.setup_high_throughput_mode()
+
             max_mcu_duration = config.getfloat('maximum_mcu_duration', 0.,
                                                minval=0.500,
                                                maxval=MAX_SCHEDULE_TIME)

@@ -320,12 +320,12 @@ stepcompress_get_step_dir(struct stepcompress *sc)
  ****************************************************************/
 
 struct sync_channel * __visible
-sync_channel_alloc(uint32_t oid)
+sync_channel_alloc() //uint32_t oid)
 {
     struct sync_channel *pc = malloc(sizeof(*pc));
     memset(pc, 0, sizeof(*pc));
     list_init(&pc->msg_queue);
-    pc->oid = oid;
+    // pc->oid = oid; //not needed?
     return pc;
 }
 

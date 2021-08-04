@@ -65,7 +65,7 @@ defs_stepcompress = """
 """
 
 defs_sync_channel = """
-    struct sync_channel *sync_channel_alloc(uint32_t oid);
+    struct sync_channel *sync_channel_alloc();
     void sync_channel_free(struct sync_channel *pc);
     int sync_channel_queue_msg(struct sync_channel *pc
         , uint32_t *data, int len, uint64_t req_clock);
