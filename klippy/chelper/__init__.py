@@ -48,13 +48,10 @@ defs_stepcompress = """
         , uint64_t clock);
     int stepcompress_queue_msg(struct stepcompress *sc
         , uint32_t *data, int len);
-<<<<<<< HEAD
     int stepcompress_extract_old(struct stepcompress *sc
         , struct pull_history_steps *p, int max
         , uint64_t start_clock, uint64_t end_clock);
 
-=======
->>>>>>> d869fa6b... Added WIP sync_channel approach for fast-track move-queue updates on host side
     struct steppersync *steppersync_alloc(struct serialqueue *sq
         , struct stepcompress **sc_list, int sc_num
         , struct sync_channel **pc_list, int pc_num, int move_num);

@@ -54,7 +54,7 @@ struct sync_channel {
 
     // Message generation
     struct list_head msg_queue;
-    uint32_t oid;
+    //uint32_t oid;
 };
 
 struct step_move {
