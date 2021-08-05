@@ -5,7 +5,6 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import sys, os, zlib, logging, math
 import serialhdl, msgproto, pins, chelper, clocksync
-from numpy.f2py.auxfuncs import throw_error
 
 class error(Exception):
     pass
@@ -291,8 +290,6 @@ class MCU_pwm:
         self._pwm_max = 0.
         self._set_cmd = self._set_cycle_ticks = None
 
-        self._oid = self._mcu.create_oid()
-
     def get_mcu(self):
         return self._mcu
     def setup_max_duration(self, max_duration):
@@ -325,6 +322,10 @@ class MCU_pwm:
                     % (self._pin, cycle_ticks,
                        self._start_value * self._pwm_max))
                 return
+            self._oid = self._mcu.create_oid()
+            if not self._is_ht:
+                self._mcu.request_move_queue_slot()
+
             self._mcu.add_config_cmd(
                 "config_pwm_out oid=%d pin=%s cycle_ticks=%d value=%d"
                 " default_value=%d max_duration=%d"
@@ -338,7 +339,7 @@ class MCU_pwm:
                                      on_restart=True)
             self._set_cmd = self._mcu.lookup_command(
                 "queue_pwm_out oid=%c clock=%u value=%hu",
-                fast_track=self._is_ht) #might be ugly without cq?
+                fast_track=self._is_ht) # might be ugly without cq?
             return
         # Software PWM
         if self._shutdown_value not in [0., 1.]:
@@ -347,6 +348,10 @@ class MCU_pwm:
             self._mcu.add_config_cmd("set_digital_out pin=%s value=%d"
                                      % (self._pin, self._start_value >= 0.5))
             return
+
+        self._oid = self._mcu.create_oid()
+        if not self._is_ht:
+            self._mcu.request_move_queue_slot()
         self._mcu.add_config_cmd(
             "config_digital_out oid=%d pin=%s value=%d"
             " default_value=%d max_duration=%d"
@@ -883,7 +888,7 @@ class MCU:
             return CommandWrapper(self._serial, msgformat, cq)
 
         if self._active_fasttrack_queues > 0:
-            raise something
+            raise error ("Currently, only one high throughput pin is allowed!")
         self._active_fasttrack_queues = self._active_fasttrack_queues + 1
         sync_channel = self._ffi_main.gc(
                 self._ffi_lib.sync_channel_alloc(),
