@@ -62,6 +62,8 @@ class PrinterOutputPin:
         if value == self.last_value and cycle_time == self.last_cycle_time:
             if not is_resend:
                 return
+        #print ("_set_pin at " + str(print_time) +
+        #        "(Resend: " + str(is_resend) + ")")
         print_time = max(print_time, self.last_print_time + cycle_time)
         if self.is_pwm:
             self.mcu_pin.set_pwm(print_time, value, cycle_time)
@@ -75,6 +77,7 @@ class PrinterOutputPin:
                 self._resend_current_val, self.reactor.NOW)
     cmd_SET_PIN_help = "Set the value of an output pin"
     def cmd_SET_PIN(self, gcmd):
+        #print ("cmd_set_PIN ")
         value = gcmd.get_float('VALUE', minval=0., maxval=self.scale)
         value /= self.scale
         cycle_time = gcmd.get_float('CYCLE_TIME', self.default_cycle_time,
@@ -94,10 +97,19 @@ class PrinterOutputPin:
         systime = self.reactor.monotonic()
         print_time = self.mcu_pin.get_mcu().estimated_print_time(systime)
         time_diff = (self.last_print_time + self.resend_interval) - print_time
+
+        #print ("  resend val at systime " + str(systime) +
+        #       " (print time " + str(print_time) + ")")
+        #print ("     for next pin update at " +
+        #       str(self.last_print_time + self.resend_interval))
+        #print ("     (diff: " + str(time_diff) + ")")
+
         if time_diff > 0.:
             # Reschedule for resend time
+            #print ("      - rescheduling to " + str(systime + time_diff))
             return systime + time_diff
-        self._set_pin(print_time, self.last_value, self.last_cycle_time, True)
+        self._set_pin(print_time + RESEND_HOST_TIME/2, self.last_value,
+                      self.last_cycle_time, True)
         return systime + self.resend_interval
 
 def load_config_prefix(config):

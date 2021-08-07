@@ -383,12 +383,15 @@ class ToolHead:
                                      + 0.100)
     def _flush_handler(self, eventtime):
         try:
+            #print (" - - Flush handler at " + str(eventtime))
             print_time = self.print_time
             buffer_time = print_time - self.mcu.estimated_print_time(eventtime)
             if buffer_time > self.buffer_time_low:
                 # Running normally - reschedule check
+                #print ( "     ... rescheduled")
                 return eventtime + buffer_time - self.buffer_time_low
             # Under ran low buffer mark - flush lookahead queue
+            #print ( "     ... flushing!")
             self.flush_step_generation()
             if print_time != self.print_time:
                 self.idle_flush_print_time = self.print_time
@@ -555,15 +558,32 @@ class ToolHead:
         # get_last_move_time or _flush_lookahead would flush a lot
         # what about performance?
 
-        self.note_kinematic_activity(kin_time)
+        #print ("  Noting sync-command for kin_time " + str(kin_time) + "\n" +
+        #       "    last kin_move_time: " + str(self.last_kin_move_time))
+        #print ("    last kin_flush_time: " + str(self.last_kin_flush_time))
+        #
+        #print ("   Queueing state: " + self.special_queuing_state)
+
+
         if(kin_time >= self.last_kin_move_time):
+            # when is the best time for that?
+            # Is this even needed with update_move_time?
+            self.note_kinematic_activity(kin_time)
+            # ---
+
             if self.special_queuing_state == "Drip":
                 self._update_drip_move_time(kin_time)
             else:
                 self._update_move_time(kin_time)
-            # ---
+
             if self.print_time > self.need_check_stall:
+                #print ("   self.print_time > self.need_check_stall ("
+                #       + str(self.need_check_stall) + ")")
                 self._check_stall()
+
+        #print ("  last_kin_flush_time now: " + str(self.last_kin_flush_time))
+        #print ("  Queueing state now: " + self.special_queuing_state)
+        #print ("")
 
     def get_max_velocity(self):
         return self.max_velocity, self.max_accel
