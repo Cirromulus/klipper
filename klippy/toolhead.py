@@ -551,6 +551,9 @@ class ToolHead:
 
         # Also: Is it allowed for a second kin_time
         # to be smaller than a previous one?
+        #
+        # get_last_move_time or _flush_lookahead would flush a lot
+        # what about performance?
 
         self.note_kinematic_activity(kin_time)
         if(kin_time >= self.last_kin_move_time):

@@ -546,13 +546,15 @@ class CommandWrapper:
         self._serial.raw_send(cmd, minclock, reqclock, self._cmd_queue)
 
 class FastCommandWrapper:
-    def __init__(self, mcu, sync_channel, queue_msg_fn):
+    def __init__(self, mcu, cmd_id, sync_channel, queue_msg_fn):
         self._mcu = mcu
+        self._cmd_id = cmd_id
         self._sync_channel = sync_channel
         self._queue_msg_fn = queue_msg_fn
         self._reactor = mcu.get_printer().get_reactor()
         self._toolhead = mcu.get_printer().lookup_object('toolhead')
     def send(self, data, minclock, reqclock):
+        data.insert(0, self._cmd_id)
         self._queue_msg_fn(self._sync_channel, data, len(data), reqclock)
         print_time = self._mcu.clock_to_print_time(reqclock)
         # TODO: Is here actually `register_async_callback` needed?
@@ -894,7 +896,8 @@ class MCU:
                 self._ffi_lib.sync_channel_alloc(),
                 self._ffi_lib.sync_channel_free)
         self.register_sync_channel(sync_channel)
-        return FastCommandWrapper(self, sync_channel,
+        return FastCommandWrapper(self, self.lookup_command_tag(msgformat),
+                                  sync_channel,
                                   self._ffi_lib.sync_channel_queue_msg)
 
     def lookup_query_command(self, msgformat, respformat, oid=None,
