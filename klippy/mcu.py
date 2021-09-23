@@ -557,8 +557,8 @@ class FastCommandWrapper:
         data.insert(0, self._cmd_id)
         self._queue_msg_fn(self._sync_channel, data, len(data), reqclock)
         print_time = self._mcu.clock_to_print_time(reqclock)
-        #print (" pin-update for " + str(print_time) +
-        #        "(" + str(reqclock) + ")")
+        print (" pin-update for " + str(print_time) +
+                "(" + str(reqclock) + ")")
         # TODO: Is here actually `register_async_callback` needed?
         self._reactor.register_async_callback(
             lambda ev: self._toolhead.note_synchronous_command(print_time))

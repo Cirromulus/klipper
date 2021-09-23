@@ -558,13 +558,16 @@ class ToolHead:
         # get_last_move_time or _flush_lookahead would flush a lot
         # what about performance?
 
-        #print ("  Noting sync-command for kin_time " + str(kin_time) + "\n" +
-        #       "    last kin_move_time: " + str(self.last_kin_move_time))
-        #print ("    last kin_flush_time: " + str(self.last_kin_flush_time))
-        #
-        #print ("   Queueing state: " + self.special_queuing_state)
+        print ("  Noting sync-command for kin_time " + str(kin_time) + "\n" +
+               "    last kin_move_time: " + str(self.last_kin_move_time))
+        print ("    last kin_flush_time: " + str(self.last_kin_flush_time))
+        
+        print ("   Queueing state: " + self.special_queuing_state)
 
 
+        # FIXME: it is possible to do an pin-update during long move
+        # (max_pin_duration)
+        # which leads to kin_time smaller than last_kin_move_time
         if(kin_time >= self.last_kin_move_time):
             # when is the best time for that?
             # Is this even needed with update_move_time?
@@ -577,13 +580,13 @@ class ToolHead:
                 self._update_move_time(kin_time)
 
             if self.print_time > self.need_check_stall:
-                #print ("   self.print_time > self.need_check_stall ("
-                #       + str(self.need_check_stall) + ")")
+                print ("   self.print_time > self.need_check_stall ("
+                       + str(self.need_check_stall) + ")")
                 self._check_stall()
 
-        #print ("  last_kin_flush_time now: " + str(self.last_kin_flush_time))
-        #print ("  Queueing state now: " + self.special_queuing_state)
-        #print ("")
+        print ("  last_kin_flush_time now: " + str(self.last_kin_flush_time))
+        print ("  Queueing state now: " + self.special_queuing_state)
+        print ("")
 
     def get_max_velocity(self):
         return self.max_velocity, self.max_accel
