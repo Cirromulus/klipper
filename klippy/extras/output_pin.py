@@ -106,7 +106,7 @@ class PrinterOutputPin:
 
         if time_diff > 0.:
             # Reschedule for resend time
-            #print ("      - rescheduling to " + str(systime + time_diff))
+            print ("      - rescheduling to " + str(systime + time_diff))
             return systime + time_diff
         self._set_pin(print_time + RESEND_HOST_TIME/2, self.last_value,
                       self.last_cycle_time, True)

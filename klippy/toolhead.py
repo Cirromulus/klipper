@@ -544,14 +544,6 @@ class ToolHead:
         Invalid to be called by background tasks
         """
 
-        # FIXME: with this uncommented, it causes
-        # sporadic "invalid step sequence" errors.
-        # But only with this, mid-move updates are
-        # possible (e.g. to use this for BLTouch pins)
-        #
-        # This may be remedied by not being called by background tasks
-        # (directly)
-
         # Also: Is it allowed for a second kin_time
         # to be smaller than a previous one?
         #
