@@ -21,8 +21,8 @@ _fully on_ for the time it takes the MCU to start up again.
 For good measure, it is recommended to _always_ wear appropriate
 laser-goggles of the right wavelength if the laser is powered;
 and to disconnect the laser when it is not needed.
-Also, you should configure a safety timeout,
-so that when your host or MCU encounters an error, the tool will stop.
+Also, you should consider using a safety timeout,
+so that when your host dies unexpectedly, the tool will stop.
 
 For an example configuration, see [config/sample-pwm-tool.cfg](/config/sample-pwm-tool.cfg).
 

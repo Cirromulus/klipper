@@ -553,7 +553,6 @@ class ToolHead:
         print ("  Noting sync-command for kin_time " + str(kin_time) + "\n" +
                "    last kin_move_time: " + str(self.last_kin_move_time))
         print ("    last kin_flush_time: " + str(self.last_kin_flush_time))
-        
         print ("   Queueing state: " + self.special_queuing_state)
 
 
