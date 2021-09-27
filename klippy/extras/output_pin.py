@@ -60,7 +60,7 @@ class PrinterOutputPin:
         return {'value': self.last_value}
     def _set_pin(self, print_time, value, cycle_time, is_resend=False):
         if value == self.last_value and cycle_time == self.last_cycle_time:
-            if not is_resend:
+            if not is_resend or value == self.shutdown_value:
                 return
         print ("_set_pin at " + str(print_time) +
                 "(Resend: " + str(is_resend) + ")")
