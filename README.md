@@ -1,8 +1,13 @@
-This is an experimental branch
+This is an older experimental branch
 ==============================
 
-.. to enable fast PWM-Updates through the klipper stepcompress/_sync_channel_/move-queue system.
-Currently, only HW-PWM is using the "fast track", because it breaks the heater pins then.*
+A current merge candidate is to be found in [this](https://github.com/Cirromulus/klipper/tree/pwm_sync_channel) branch.
+
+
+The Idea of my approach is to enable fast PWM-Updates through the klipper stepcompress/_sync_channel_/move-queue system.
+(NOT ANYMORE), only HW-PWM is using the "fast track", because it breaks the heater pins then.*  
+
+
 
 
 Example configuration:
