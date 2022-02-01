@@ -2,7 +2,7 @@ This is an older experimental branch
 ==============================
 
 A current merge candidate is to be found in [this](https://github.com/Cirromulus/klipper/tree/pwm_sync_channel) branch.
-Also, see the open (Pull Request)[https://github.com/Klipper3d/klipper/pull/4128].
+Also, see the open [Pull Request](https://github.com/Klipper3d/klipper/pull/4128).
 
 
 The Idea of my approach is to enable fast PWM-Updates through the klipper stepcompress/_sync_channel_/move-queue system.
