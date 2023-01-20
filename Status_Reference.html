@@ -993,6 +993,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#screws_tilt_adjust" class="md-nav__link">
+    screws_tilt_adjust
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#servo" class="md-nav__link">
     servo
   </a>
@@ -1058,6 +1065,13 @@
         <li class="md-nav__item">
   <a href="#webhooks" class="md-nav__link">
     webhooks
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#z_thermal_adjust" class="md-nav__link">
+    z_thermal_adjust
   </a>
   
 </li>
@@ -1740,6 +1754,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#screws_tilt_adjust" class="md-nav__link">
+    screws_tilt_adjust
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#servo" class="md-nav__link">
     servo
   </a>
@@ -1805,6 +1826,13 @@
         <li class="md-nav__item">
   <a href="#webhooks" class="md-nav__link">
     webhooks
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#z_thermal_adjust" class="md-nav__link">
+    z_thermal_adjust
   </a>
   
 </li>
@@ -2164,8 +2192,12 @@ is defined):</p>
 defined):</p>
 <ul>
 <li><code>filename</code>, <code>total_duration</code>, <code>print_duration</code>, <code>filament_used</code>,
-  <code>state</code>, <code>message</code>: Estimated information about the current print
-  when a virtual_sdcard print is active.</li>
+  <code>state</code>, <code>message</code>: Estimated information about the current print when a
+  virtual_sdcard print is active.</li>
+<li><code>info.total_layer</code>: The total layer value of the last <code>SET_PRINT_STATS_INFO
+   TOTAL_LAYER=&lt;value&gt;</code> G-Code command.</li>
+<li><code>info.current_layer</code>: The current layer value of the last
+  <code>SET_PRINT_STATS_INFO CURRENT_LAYER=&lt;value&gt;</code> G-Code command.</li>
 </ul>
 <h2 id="probe">probe<a class="headerlink" href="#probe" title="Permanent link">&para;</a></h2>
 <p>The following information is available in the
@@ -2198,6 +2230,30 @@ is defined):</p>
   if this is used in a macro, due to the order of template expansion,
   the QUERY_ENDSTOP command must be run prior to the macro containing
   this reference.</li>
+</ul>
+<h2 id="screws_tilt_adjust">screws_tilt_adjust<a class="headerlink" href="#screws_tilt_adjust" title="Permanent link">&para;</a></h2>
+<p>The following information is available in the <code>screws_tilt_adjust</code>
+object:</p>
+<ul>
+<li><code>error</code>: Returns True if the most recent <code>SCREWS_TILT_CALCULATE</code>
+  command included the <code>MAX_DEVIATION</code> parameter and any of the probed
+  screw points exceeded the specified <code>MAX_DEVIATION</code>.</li>
+<li><code>results</code>: A list of the probed screw locations. Each entry in
+  the list will be a dictionary containing the following keys:<ul>
+<li><code>name</code>: The name of the screw as specified in the config file.</li>
+<li><code>x</code>: The X coordinate of the screw as specified in the config file.</li>
+<li><code>y</code>: The Y coordinate of the screw as specified in the config file.</li>
+<li><code>z</code>: The measured Z height of the screw location.</li>
+<li><code>sign</code>: A string specifying the direction to turn to screw for the
+  necessary adjustment. Either "CW" for clockwise or "CCW" for
+  counterclockwise. The base screw will not have a <code>sign</code> key.</li>
+<li><code>adjust</code>: The number of screw turns to adjust the screw, given in
+  the format "HH:MM," where "HH" is the number of full screw turns
+  and "MM" is the number of "minutes of a clock face" representing
+  a partial screw turn. (E.g. "01:15" would mean to turn the screw
+  one and a quarter revolutions.)</li>
+</ul>
+</li>
 </ul>
 <h2 id="servo">servo<a class="headerlink" href="#servo" title="Permanent link">&para;</a></h2>
 <p>The following information is available in
@@ -2316,6 +2372,19 @@ object is always available):</p>
   state. Possible values are: "ready", "startup", "shutdown", "error".</li>
 <li><code>state_message</code>: A human readable string giving additional context
   on the current Klipper state.</li>
+</ul>
+<h2 id="z_thermal_adjust">z_thermal_adjust<a class="headerlink" href="#z_thermal_adjust" title="Permanent link">&para;</a></h2>
+<p>The following information is available in the <code>z_thermal_adjust</code> object (this
+object is available if <a href="Config_Reference.html#z_thermal_adjust">z_thermal_adjust</a>
+is defined).</p>
+<ul>
+<li><code>enabled</code>: Returns True if adjustment is enabled.</li>
+<li><code>temperature</code>: Current (smoothed) temperature of the defined sensor. [degC]</li>
+<li><code>measured_min_temp</code>: Minimum measured temperature. [degC]</li>
+<li><code>measured_max_temp</code>: Maximum measured temperature. [degC]</li>
+<li><code>current_z_adjust</code>: Last computed Z adjustment [mm].</li>
+<li><code>z_adjust_ref_temperature</code>: Current reference temperature used for calculation
+  of Z <code>current_z_adjust</code> [degC].</li>
 </ul>
 <h2 id="z_tilt">z_tilt<a class="headerlink" href="#z_tilt" title="Permanent link">&para;</a></h2>
 <p>The following information is available in the <code>z_tilt</code> object (this
